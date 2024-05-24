@@ -1,27 +1,29 @@
 import { useContext } from "react";
-import { BearContext, BearState } from "./bearStore";
+import { BearContext, BearStateSlice, FishStateSlice } from "./bearStore";
 import { useStore } from "zustand";
 
 export const Home = () => {
   const store = useContext(BearContext);
   if (!store) throw new Error("Missing BearContext.Provider in the tree");
 
-  const { bears, increasePopulation, removeAllBears, updateBears } = useStore(
+  const { bears, fishes, addBear, eatFish, addFish } = useStore(
     store,
-    (state: BearState) => ({
+    (state: BearStateSlice & FishStateSlice) => ({
       bears: state.bears,
-      increasePopulation: state.increasePopulation,
-      removeAllBears: state.removeAllBears,
-      updateBears: state.updateBears,
+      fishes: state.fishes,
+      addBear: state.addBear,
+      eatFish: state.eatFish,
+      notify: state.notify,
+      addFish: state.addFish,
     })
   );
 
   return (
     <div>
       <div className="card">
-        <button onClick={increasePopulation}>bear count is {bears}</button>
-        <button onClick={removeAllBears}>Remove all bears</button>
-        <button onClick={() => updateBears(10)}>Set Bears to 10</button>
+        <button onClick={addBear}>bear count is {bears}</button>
+        <button onClick={addFish}>fishes is {fishes}</button>
+        <button onClick={eatFish}>eat fish</button>
       </div>
     </div>
   );
