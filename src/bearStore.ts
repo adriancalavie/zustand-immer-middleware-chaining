@@ -5,7 +5,8 @@ import { immer } from "zustand/middleware/immer";
 export type BearStateSlice = {
   bears: number;
   addBear: () => void;
-  eatFish: () => void;
+  fishWasPoisoned: () => void;
+  removeBear: () => void;
   notify: (message: string) => void;
 };
 
@@ -14,29 +15,54 @@ export type FishStateSlice = {
   addFish: () => void;
 };
 
-const createBearSlice: StateCreator<
-  BearStateSlice & FishStateSlice,
+const FISH_STATE_FIELDS = ["fishes", "addFish"] as const;
+
+type ImmerStateCreator<T, U> = StateCreator<
+  T & U,
+  [["zustand/immer", never], never],
   [],
-  [],
-  BearStateSlice
-> = (set) => ({
+  T
+>;
+
+const createBearSlice: ImmerStateCreator<BearStateSlice, FishStateSlice> = (
+  set
+) => ({
   bears: 0,
-  addBear: () => set((state) => ({ bears: state.bears + 1 })),
-  eatFish: () => set((state) => ({ fishes: state.fishes - 1 })),
+  addBear: () =>
+    set((state) => {
+      state.bears += 1;
+    }),
+  fishWasPoisoned: () =>
+    set((state) => {
+      state.fishes -= 1;
+      state.bears -= 1;
+    }),
+  removeBear: () =>
+    set((state) => {
+      state.bears -= 1;
+    }),
   notify: (message) => console.log(message),
 });
 
-const createFishSlice: StateCreator<
-  BearStateSlice & FishStateSlice,
-  [],
-  [],
-  FishStateSlice
-> = (set) => ({
+const createFishSlice: ImmerStateCreator<FishStateSlice, BearStateSlice> = (
+  set
+) => ({
   fishes: 0,
-  addFish: () => set((state) => ({ fishes: state.fishes + 1 })),
+  addFish: () =>
+    set((state) => {
+      state.fishes += 1;
+    }),
 });
 
 export type BearStore = ReturnType<typeof createBearStore>;
+
+function hasProperty<T extends object>(
+  obj: T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  property: keyof any
+): property is keyof T {
+  return property in obj;
+}
 
 // Custom middleware to notify before state changes
 const notifyMiddleware =
@@ -47,8 +73,16 @@ const notifyMiddleware =
     config(
       (partial, replace) => {
         set(partial, replace);
-        get().notify(`Bears: ${JSON.stringify(get().bears)}`);
-        get().notify(`Fishes: ${JSON.stringify(get().fishes)}`);
+        console.log("state changed", partial);
+        let shouldNotify = true;
+        for (const key of FISH_STATE_FIELDS) {
+          if (hasProperty(partial, key)) {
+            shouldNotify = false;
+          }
+        }
+        if (shouldNotify) {
+          get().notify(`Bear count: ${get().bears}`);
+        }
       },
       get,
       api
